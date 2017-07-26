@@ -2,16 +2,22 @@ import collections
 import json
 from collections import OrderedDict
 
-import inflection
 import six
+
+import inflection
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import NoReverseMatch
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.fields import MISSING_ERROR_MESSAGE
-from rest_framework.relations import MANY_RELATION_KWARGS, PrimaryKeyRelatedField
+from rest_framework.relations import (
+    MANY_RELATION_KWARGS,
+    PKOnlyObject,
+    PrimaryKeyRelatedField,
+    get_attribute,
+    is_simple_callable
+)
 from rest_framework.reverse import reverse
 from rest_framework.serializers import Serializer
-
 from rest_framework_json_api.exceptions import Conflict
 from rest_framework_json_api.utils import (
     Hyperlink,
@@ -27,6 +33,15 @@ LINKS_PARAMS = [
     'related_link_lookup_field',
     'related_link_url_kwarg'
 ]
+
+
+class PKOnlyObjectWithMeta(PKOnlyObject):
+    class _meta(object):
+        model = None
+
+    def __init__(self, pk, model=None):
+        self.pk = pk
+        self._meta.model = model
 
 
 class ResourceRelatedField(PrimaryKeyRelatedField):
@@ -74,9 +89,31 @@ class ResourceRelatedField(PrimaryKeyRelatedField):
 
         super(ResourceRelatedField, self).__init__(**kwargs)
 
-    def use_pk_only_optimization(self):
-        # We need the real object to determine its type...
-        return False
+    def get_attribute(self, instance):
+        #print('WTF! here')
+        print('instance:', instance, type(instance), 'source_attrs', self.source_attrs, 'source:', self.source, 'pk_only"', self.use_pk_only_optimization(), 'self, qs:', self, self.queryset)
+        if self.use_pk_only_optimization() and self.source_attrs:
+            print('inside')
+            # Optimized case, return a mock object only containing the pk attribute.
+            try:
+                instance = get_attribute(instance, self.source_attrs[:-1])
+                value = instance.serializable_value(self.source_attrs[-1])
+                if is_simple_callable(value):
+                    # Handle edge case where the relationship `source` argument
+                    # points to a `get_relationship()` method on the model
+                    value = value().pk
+                if not self.queryset: # If remapping of related name
+                    if self.field_name in self.parent.included_serializers.keys():
+                        model = self.parent.included_serializers[self.field_name].Meta.model
+                    print(self.field_name, model)
+                else:
+                    model = self.queryset.model
+                return PKOnlyObjectWithMeta(pk=value, model=model)
+            except AttributeError:
+                pass
+
+        # Standard case, return the object instance.
+        return get_attribute(instance, self.source_attrs)
 
     def conflict(self, key, **kwargs):
         """

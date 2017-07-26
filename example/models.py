@@ -63,7 +63,7 @@ class AuthorBio(BaseModel):
     body = models.TextField()
 
     def __str__(self):
-        return self.author.name
+        return 'AuthorBio for (%d)' % self.author_id
 
     class Meta:
         ordering = ('id',)

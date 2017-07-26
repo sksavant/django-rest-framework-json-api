@@ -13,6 +13,9 @@ from rest_framework.settings import api_settings
 
 from rest_framework_json_api import utils
 
+import logging
+logger = logging.getLogger('django')
+
 
 class JSONRenderer(renderers.JSONRenderer):
     """
@@ -72,6 +75,7 @@ class JSONRenderer(renderers.JSONRenderer):
     def extract_relationships(cls, fields, resource, resource_instance):
         # Avoid circular deps
         from rest_framework_json_api.relations import ResourceRelatedField
+        logger.error('Start extract')
 
         data = OrderedDict()
 
@@ -125,16 +129,22 @@ class JSONRenderer(renderers.JSONRenderer):
                 continue
 
             if isinstance(field, ResourceRelatedField):
+                ##print('here')
+                ##print('field:', field) #, 'resource_instance:', resource_instance) #, type(resource_instance), 'source:', source) 'resource:', dict(resource))
+
+                '''
                 resolved, relation_instance = utils.get_relation_instance(
                     resource_instance, source, field.parent
                 )
                 if not resolved:
                     continue
+                '''
 
                 # special case for ResourceRelatedField
                 relation_data = {
                     'data': resource.get(field_name)
                 }
+                ##print('related_link_lookup_field', field.related_link_lookup_field)
 
                 field_links = field.get_links(
                     resource_instance, field.related_link_lookup_field)
@@ -453,6 +463,7 @@ class JSONRenderer(renderers.JSONRenderer):
     @classmethod
     def build_json_resource_obj(cls, fields, resource, resource_instance, resource_name,
                                 force_type_resolution=False):
+        logger.info('Build JSON resource obj')
         # Determine type from the instance if the underlying model is polymorphic
         if force_type_resolution:
             resource_name = utils.get_resource_type_from_instance(resource_instance)
@@ -489,6 +500,8 @@ class JSONRenderer(renderers.JSONRenderer):
         )
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
+
+        logger.info('Render')
 
         view = renderer_context.get("view", None)
         request = renderer_context.get("request", None)
@@ -546,6 +559,7 @@ class JSONRenderer(renderers.JSONRenderer):
 
             if getattr(serializer, 'many', False):
                 json_api_data = list()
+                ##print('serializer_Data', serializer_data)
 
                 for position in range(len(serializer_data)):
                     resource = serializer_data[position]  # Get current resource

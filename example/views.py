@@ -67,19 +67,30 @@ class EntryViewSet(ModelViewSet):
     def get_serializer_class(self):
         return EntrySerializer
 
+from example.serializers import AuthorBioSerializer
+from example.models import AuthorBio
+class AuthorBioViewSet(ModelViewSet):
+    queryset = AuthorBio.objects.all()
+    serializer_class = AuthorBioSerializer
+    prefetch_for_includes = {
+    }
+
 
 class AuthorViewSet(ModelViewSet):
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
+    prefetch_for_includes = {
+        '__all__': ['entries', 'bio'],
+    }
 
 
 class CommentViewSet(ModelViewSet):
-    queryset = Comment.objects.select_related('author', 'entry')
+    queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     prefetch_for_includes = {
         '__all__': [],
         'author': ['author', 'author__bio', 'author__entries'],
-        'entry': ['author', 'author__bio', 'author__entries']
+        'entry': ['entry',]
     }
 
 
