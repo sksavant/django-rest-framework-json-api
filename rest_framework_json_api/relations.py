@@ -91,9 +91,9 @@ class ResourceRelatedField(PrimaryKeyRelatedField):
 
     def get_attribute(self, instance):
         #print('WTF! here')
-        print('instance:', instance, type(instance), 'source_attrs', self.source_attrs, 'source:', self.source, 'pk_only"', self.use_pk_only_optimization(), 'self, qs:', self, self.queryset)
+        #print('instance:', instance, type(instance), 'source_attrs', self.source_attrs, 'source:', self.source, 'pk_only"', self.use_pk_only_optimization(), 'self, qs:', self, self.queryset)
         if self.use_pk_only_optimization() and self.source_attrs:
-            print('inside')
+            #print('inside')
             # Optimized case, return a mock object only containing the pk attribute.
             try:
                 instance = get_attribute(instance, self.source_attrs[:-1])

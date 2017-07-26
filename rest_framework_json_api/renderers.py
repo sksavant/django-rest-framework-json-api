@@ -74,7 +74,7 @@ class JSONRenderer(renderers.JSONRenderer):
     @classmethod
     def extract_relationships(cls, fields, resource, resource_instance):
         # Avoid circular deps
-        from rest_framework_json_api.relations import ResourceRelatedField
+        from rest_framework_json_api.relations import ResourceRelatedField, PKOnlyObjectWithMeta
         logger.error('Start extract')
 
         data = OrderedDict()
@@ -132,13 +132,17 @@ class JSONRenderer(renderers.JSONRenderer):
                 ##print('here')
                 ##print('field:', field) #, 'resource_instance:', resource_instance) #, type(resource_instance), 'source:', source) 'resource:', dict(resource))
 
-                '''
-                resolved, relation_instance = utils.get_relation_instance(
-                    resource_instance, source, field.parent
-                )
+                if isinstance(field.get_attribute(resource_instance), PKOnlyObjectWithMeta):
+                    resolved, relation_instance = utils.get_relation_instance(
+                        resource_instance, '%s_id' % source, field.parent
+                    )
+                else:
+                    resolved, relation_instance = utils.get_relation_instance(
+                        resource_instance, source, field.parent
+                    )
+
                 if not resolved:
                     continue
-                '''
 
                 # special case for ResourceRelatedField
                 relation_data = {
